@@ -24,6 +24,8 @@ xmax=2.75
 xmin = -2.82
 ymax=2.4
 ymin=-2.25
+ball_size_min = 10.0/1000
+ball_size_max = 100.0/1000
 
 
 def get_norm(x,y):
@@ -108,6 +110,8 @@ class MotionCapture(Node):
 
             preFrmNo = curFrmNo
             n_o=frameData.nOtherMarkers
+            # print("num_marker:",n_o)
+
             self.temp_p=[0]
             self.v=[]
             p_o=[]
@@ -117,10 +121,14 @@ class MotionCapture(Node):
             else:
                 pose_ball=Pose2D()
                 for i in range(n_o):
+                    # print("num_marker in else:",n_o)
                     xb=frameData.OtherMarkers[i][0]/1000
                     yb=frameData.OtherMarkers[i][1]/1000
-                    if xb>xmin and xb<xmax and yb>ymin and yb<ymax:
+                    zb=frameData.OtherMarkers[i][2]/1000
+                    if xb>xmin and xb<xmax and yb>ymin and yb<ymax and zb > ball_size_min and zb < ball_size_max:
                         pose_ball=Pose2D(x=xb, y=yb)
+                        # print("pose_ball:", pose_ball)
+                        continue
                 
                 self.temp_p[0]=pose_ball
                     # dt=self.tdq[1]-self.tdq[0]
@@ -152,7 +160,7 @@ class MotionCapture(Node):
             
                 # self.stop_pub.publish(Mocap(stop=0))
                 self.verbose=False
-                self.p=self.temp_p.copy()
+                # self.p=self.temp_p.copy()
                 self.last_ball=self.p[0]
 
                 for iBody in range(frameData.nRigidBodies):

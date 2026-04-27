@@ -45,7 +45,7 @@ p_goal=[p_goal_a, p_goal_b]
 atk_comp=1.0
 def_dist=1.4
 no_rms=7 # 6 rm plus 1 ball
-no_ys=6
+no_ys=1
 target_poses=target_poses
 vkick_min=0.5 # the least speed for kicker to keep agile
 vkikcer_adjust=3 # to adjust ball speed to find kicker
@@ -56,6 +56,11 @@ t0 = time.time()
 class Strategy(Node):
     def __init__(self, name):
         super().__init__(name)
+
+        # test
+        self.count = 0
+        self.count2 = 0
+
         self.name=name
         self.p=np.zeros([no_rms,3])
         self.p_ys=np.zeros([no_ys, 3])
@@ -77,7 +82,7 @@ class Strategy(Node):
         self.ctrl_pub=self.create_publisher(Ctrl, 'ctrl', 1)
         # self.comm_srv=self.create_service(Comm, 'rm_comm', self.comm_srv_cb)
         # self.ys_client=self.create_client(Comm, 'ys_comm')
-        
+        self.mask = np.ones((no_rms,1))
         self.ys_pub=self.create_publisher(Yscomm, 'yscomm', 1)
         self.comm=[0]*6
         self.ys_req=Comm.Request()
@@ -119,10 +124,18 @@ class Strategy(Node):
     def mo_cb(self, mc_msg):
         global t0
 
-        if len(mc_msg.poses)==7:
+        # if self.count > 1900:
+        #     print("mc_msg:", mc_msg)
+
+        # if len(mc_msg.poses)==no_rms + no_ys:
+        if len(mc_msg.poses)>0:
+            prev_p = self.p.copy()
+            self.p = pose2d_to_nparray(mc_msg.poses[:no_rms])
+            self.mask[:,0] = self.p[:,0]<100
+            self.p = self.p *self.mask + prev_p*(1-self.mask)
             
-            self.p=pose2d_to_nparray(mc_msg.poses[:no_rms])
-            
+
+     
             # t0 = time.time()
             # print('mc_msg.poses:\n',self.p[0],'\n')
             self.p_ys=pose2d_to_nparray(mc_msg.poses[no_rms:no_rms+no_ys])
@@ -253,7 +266,7 @@ class Strategy(Node):
             print(f'begin to reset. get catcher: {self.catcher}')
             self.kicker=0
             self.target_code=[10]*7
-            self.target_code[self.catcher]=39
+            self.target_code[self.catcher]=30
             self.target_pose=target_poses.copy()
             self.first_reset=0
             self.pub_yscomm('all', 0)
@@ -287,13 +300,41 @@ class Strategy(Node):
     def catch_ball(self, to_ys=False):
         # self.get_logger().info(f'!!!!!!!!!!catcher state: {self.agent_status[self.catcher]}')
         # print(self.target_pose,'\n')
-        self.target_code[self.catcher]==39
+        ##my
+        # print("self.target_code[self.catcher]", self.target_code[self.catcher])
+        # test for nokov
+        self.count += 1
+        self.count2 += 1
+        
+        # if self.count > 2000:
+        #     print("self.catcher_p", self.p[self.catcher])
+        #     print("self.catcher", self.catcher)
+        #     print("self.target_code[self.catcher]", self.target_code[self.catcher])
+        #     self.count = 0
+        # test end
+        if self.count2 > 1000:
+            print("self.target_code[self.catcher]", self.target_code[self.catcher])
+            print("self.agent_status[self.catcher]", self.agent_status[self.catcher])
+            print("self.catcher",self.catcher)
+            self.count2 = 0
+
+        
+        # self.target_code[self.catcher]=39
         if self.target_code[self.catcher]<=30:  # move to ball
             rclpy.spin_once(self)
             
             self.catch_pose=calc_catching_pose(self.p[0], self.p[self.catcher], self.v[0])
+            d, dphi, ccres=check_catched(self.p[self.catcher], self.p[0], self.v[0])
             # print(self.p[0], self.p[self.catcher],self.catch_pose)
-            # print(self.catch_pose)
+            if self.count > 1000:
+                print("self.rel_cmd[2]", self.rel_cmd[2])
+                print("catcher.d", d)
+                print("catcher.dphi", dphi)
+                print("catcher.ccres", ccres)
+                print("self.p[2]", self.p[2])
+                print("self.target_pose[2]", self.target_pose[2])
+                print("self.ball_p", self.p[0], "\n")
+                self.count = 0
             # print(self.p)
             # print(self.p[0], self.p[self.catcher], self.v[0])
             # print(self.catch_pose)
@@ -306,28 +347,43 @@ class Strategy(Node):
                 self.get_logger().info(f'RM{self.catcher} ready to grip, code: {self.target_code[self.catcher]}')
             
         elif self.target_code[self.catcher]==32: # grip
+            
             # self.get_logger().info(f'agent status: {self.agent_status[self.catcher]}')
             # dphi, d=check_catched(self.p[self.catcher], self.p[0], self.v[0])
             # self.get_logger().info(f'dphi: {dphi}, d: {d}')
             # self.get_logger().info(f'catcher state: {self.agent_status[self.catcher]}')
             if self.agent_status[self.catcher]==32: # finished grip
+                print("finished")
                 d, dphi, ccres=check_catched(self.p[self.catcher], self.p[0], self.v[0])
+                
                 self.get_logger().info(f'dist to ball: {d}, dphi: {dphi}')
                 if ccres:
                     self.get_logger().info(f'---RM{self.catcher} caught ball')
                     self.target_code[self.catcher]=34
                 else: # recatch
+                    print("not catch d:", d)
+                    print("not catch dphi", dphi)
                     self.get_logger().info(f'recatch')
                     self.target_code[self.catcher]=30
         elif self.target_code[self.catcher]==34: # if got ball, then take it to the yanshee kicker
             if to_ys:
+                ################### my
                 # if self.kickoff==2:
                 #     self.target_pose[self.catcher]=np.array([self.p_ys[1][0]+0.39, self.p_ys[1][1]-0.03, pi])
                 # elif self.kickoff==5:
                 #     self.target_pose[self.catcher]=np.array([self.p_ys[4][0]-0.39, self.p_ys[4][1]+0.04, 0])
-                self.target_pose[self.catcher] = np.array([0, 0, 0])
+                if self.kickoff==2:
+                    self.target_pose[self.catcher]=np.array([self.p_ys[0][0]+0.39, self.p_ys[0][1]-0.03, pi])
+                elif self.kickoff==5:
+                    self.target_pose[self.catcher]=np.array([self.p_ys[0][0]-0.39, self.p_ys[0][1]+0.04, 0])
+                
+                ################### end
+
+
+
+                # self.target_pose[self.catcher] = np.array([0, 0, 0])
             else:
-                self.targettarget_pose_pose[self.catcher]=target_poses[0].copy()
+                self.target_pose[self.catcher]=target_poses[0].copy()
             # self.get_logger().info(f'check if RM{self.catcher} catched {distance(self.p[self.catcher], self.target_pose[self.catcher])}')
             # self.get_logger().info(f'{self.p[self.catcher]}, {self.target_pose[self.catcher]}，{self.p_ys[1]}')
             if in_position(self.p[self.catcher], self.target_pose[self.catcher], 0.04):
@@ -367,12 +423,16 @@ class Strategy(Node):
                 # rclpy.spin_once(self)
                 # time.sleep(0.05)
             self.pub_yscomm('all', 1)
-            # time.sleep(1)
+            time.sleep(3)
             self.game_code='play' # play
             # self.target_code=[10]*no_rms
             self.first_reset=1
             self.obtime=0
-    
+        
+        if self.count2 > 999:
+            print("self.target_pose[self.catcher]: ", self.target_pose[self.catcher])
+            print("self.rel_cmd[3]:", self.rel_cmd[3])
+            print("self.p[2]", self.p[2])
 
 def main(args=None):
     global target_poses
@@ -387,10 +447,8 @@ def main(args=None):
             # global t0
             # t0 = time.time()
             node.reset()
-            # print('time:',time.time()-t0)
-            # print("reset3")
+            # print('reset_time:',time.time()-t0)
         else:
-            print("NOTreset")
             oob=node.out_of_boundary()
             if oob: 
                 node.ob=True
@@ -485,6 +543,11 @@ def main(args=None):
                 #     # node.rel_cmd[i]=np.array([node.rel_cmd[i][0],node.rel_cmd[i][1], node.rel_cmd[i][2]])
                 #     node.rel_cmd[i]=too_slow(node.rel_cmd[i])
             i+=1
+
+        node.rel_cmd = node.rel_cmd * node.mask
+        # node.rel_cmd[2:] = node.rel_cmd[2:]*0
+        # node.rel_cmd[1] = np.array([0.0, 0.5, 0.1])
+        
         node.command()
     node.destroy_node()
     rclpy.shutdown()

@@ -352,7 +352,7 @@ void delay(int timeout_ms)
 int main(int argc, char * argv[])
 {
 	const bool with_ys = with_yanshee_mode();
-	num_ys = with_ys ? 6 : 0;
+	num_ys = with_ys ? 6 : 1;
 	num_p = 1 + num_rm + num_ys;
 	std::cout << "SOCCER_MODE=" << (with_ys ? "full" : "rm_only")
 		<< ", num_rm=" << num_rm << ", num_ys=" << num_ys << std::endl;

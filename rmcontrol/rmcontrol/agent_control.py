@@ -187,6 +187,11 @@ def main(args=None):
                 rclpy.spin_once(node)
                 node.gripper_action.send_goal_async(gripper[0], feedback_callback=node.gripper_fbcb)
                 rclpy.spin_once(node)
+                while not node.grip_state==1:
+                    print(2)
+                    node.gripper_action.send_goal_async(gripper[0], feedback_callback=node.gripper_fbcb)
+                    rclpy.spin_once(node) # spin to update arm_pose
+                    time.sleep(0.1)
                 while not node.check_arm()==2:
                     rclpy.spin_once(node) # spin to update arm_pose
                     time.sleep(0.2)
@@ -201,6 +206,8 @@ def main(args=None):
             rclpy.spin_once(node)
             time.sleep(0.2)
             while not node.grip_state==2:
+                print(1)
+                node.gripper_action.send_goal_async(gripper[1], feedback_callback=node.gripper_fbcb)
                 rclpy.spin_once(node) # spin to update arm_pose
                 time.sleep(0.1)
             node.get_logger().info(f'RM{node.id} closed grip')

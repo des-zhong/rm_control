@@ -71,6 +71,8 @@ def generate_launch_description():
             launch_arguments={
                 'name': 'RM4',
                 'serial_number': '3JKCJC400301UD',
+                'gimbal':'true',
+                'gimbal_mode':'2',
             }.items()
         ),
         IncludeLaunchDescription(
@@ -84,6 +86,8 @@ def generate_launch_description():
             launch_arguments={
                 'name': 'RM5',
                 'serial_number': '3JKCJC400301W0',
+                'gimbal':'true',
+                'gimbal_mode':'2',
             }.items()
         ),
         IncludeLaunchDescription(
@@ -97,6 +101,8 @@ def generate_launch_description():
             launch_arguments={
                 'name': 'RM6',
                 'serial_number': '3JKCJC400300Y9',
+                'gimbal':'true',
+                'gimbal_mode':'2',
             }.items()
         ),
     ])

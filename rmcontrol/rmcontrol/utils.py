@@ -9,8 +9,8 @@ import sympy as sp
 
 # def get_ori(p1,p2):
 #     return atan2(p1[1]-p2[1], p1[0]-p2[0])*180/pi
-catched=[0.240,0.300]
-
+catched=[0.280,0.320]
+catch_dphi_mu = -0.0235   # 每次标定完测这个数据
 
 def distance(p1, p2):
     """
@@ -74,7 +74,7 @@ def check_catched(ps, pb, vb):
     dphi=limit_pi(atan2(pb[1]-ps[1],pb[0]-ps[0])-limit_pi(ps[2])) # 球和ep的朝向角度差
     d=((pb[0]-ps[0])**2+(pb[1]-ps[1])**2)**0.5 # 球和ep中心的距离
     # print(f'是否抓住：角度差:{dphi}, 距离（m）:{d}')
-    return d, dphi, (abs(dphi)<0.08 and d in Interval(catched[0],catched[1]+norm(np.array([vb[0], vb[1]]))/30))
+    return d, dphi, (abs(dphi-catch_dphi_mu)<0.04 and d in Interval(catched[0],catched[1]+norm(np.array([vb[0], vb[1]]))/30))
     # return dphi, d
 
 def check_catchable(ps, pb):
@@ -156,7 +156,7 @@ def calc_catching_pose(b: np.ndarray, a: np.ndarray, vb):
     l = np.sqrt((b[0]-a[0])**2+(b[1]-a[1])**2)+0.001
     x = b[0]+distance*(a[0]-b[0])/l
     y = b[1]+distance*(a[1]-b[1])/l
-    return np.array([x+vb[0],y+vb[0],atan2(b[1]-a[1], b[0]-a[0])])
+    return np.array([x+vb[0],y+vb[1],atan2(b[1]-a[1], b[0]-a[0])])
 
 
 

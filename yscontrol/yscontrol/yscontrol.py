@@ -18,7 +18,7 @@ from geometry_msgs.msg import Twist, Vector3, Pose2D
 from ros2_interfaces.msg import Motions
 from ros2_interfaces.msg import Yscomm
 # from ros2_interfaces.srv import Comm
-from .inference import inf
+# from .inference import inf
 
 
 
@@ -27,7 +27,8 @@ from .inference import inf
 BOT_STANDBY = 0
 BOT_APPROACHING = 1
 BOT_BALL_READY = 2
-ip_addr_1= "192.168.3.51"  #6AB8
+ip_addr_1 = "192.168.0.16" 
+# ip_addr_1= "192.168.3.51"  #6AB8
 ip_addr_2= "192.168.3.56"  #A77D
 ip_addr_3="192.168.3.76"   #DF7D
 ip_addr_4="192.168.3.64"   #9B3D
