@@ -3,6 +3,7 @@ from rclpy.action import ActionClient
 from rclpy.node import Node
 from robomaster_msgs.action import Move
 from ros2_interfaces.msg import Motions, Ctrl, Yscomm
+from std_msgs.msg import Bool
 from ros2_interfaces.srv import AgentStatus, Comm
 # from geometry_msgs.msg import Twist, Vector3, Pose2D
 import time
@@ -97,6 +98,31 @@ class Strategy(Node):
         self.wait_for_ys=False
         self.change_time=time.time()
 
+        # Visual grasp-success judgement.  The old approach called
+        # check_catched() here, which depends on motion-capture calibration
+        # between the ball and the RoboMaster body.  Keep the parameterised
+        # fallback, but use /RMx/grip_vision/caught by default.
+        self.use_visual_catch = bool(self.declare_parameter('use_visual_catch', True).value)
+        self.visual_wait_sec = float(self.declare_parameter('visual_wait_sec', 0.8).value)
+        self.visual_timeout_sec = float(self.declare_parameter('visual_timeout_sec', 0.7).value)
+        self.grip_vision_caught=[False]*no_rms
+        self.grip_vision_time=[0.0]*no_rms
+        self.catch_attempt_time=[0.0]*no_rms
+        self.grip_vision_subs=[]
+        if self.use_visual_catch:
+            for rid in [1, 2, 3]:
+                self.grip_vision_subs.append(
+                    self.create_subscription(
+                        Bool,
+                        f'/RM{rid}/grip_vision/caught',
+                        lambda msg, rid=rid: self.grip_vision_cb(msg, rid),
+                        5,
+                    )
+                )
+            self.get_logger().info('visual catch enabled: using /RM1..3/grip_vision/caught')
+        else:
+            self.get_logger().info('visual catch disabled: using motion-capture check_catched()')
+
 
     # def comm_srv_cb(self, req, resp):
     #     self.get_logger().info(f'rm_comm got: {req.comm}')
@@ -112,6 +138,17 @@ class Strategy(Node):
 
     def rvo_cb(self, msg):
         self.rvo_res=pose2d_to_nparray(msg.pose)
+
+    def grip_vision_cb(self, msg, rid):
+        self.grip_vision_caught[rid]=bool(msg.data)
+        self.grip_vision_time[rid]=time.time()
+
+    def visual_catch_result(self, rid):
+        """Return (caught, fresh, age) from the visual detector for robot rid."""
+        age=time.time()-self.grip_vision_time[rid]
+        fresh=age <= self.visual_timeout_sec
+        caught=fresh and self.grip_vision_caught[rid] and self.grip_vision_time[rid] >= self.catch_attempt_time[rid]
+        return caught, fresh, age
 
     def status_cb(self, req, resp):
         if req.id==self.catcher and req.status==30:
@@ -344,6 +381,9 @@ class Strategy(Node):
             # self.get_logger().info(f'dist: {distance(self.p[self.catcher], self.target_pose[self.catcher])}')
             if self.agent_status[self.catcher]==30 and check_catchable(self.p[self.catcher], self.p[0]):
                 self.target_code[self.catcher]=32
+                self.catch_attempt_time[self.catcher]=time.time()
+                self.grip_vision_caught[self.catcher]=False
+                self.grip_vision_time[self.catcher]=0.0
                 self.get_logger().info(f'RM{self.catcher} ready to grip, code: {self.target_code[self.catcher]}')
             
         elif self.target_code[self.catcher]==32: # grip
@@ -354,17 +394,33 @@ class Strategy(Node):
             # self.get_logger().info(f'catcher state: {self.agent_status[self.catcher]}')
             if self.agent_status[self.catcher]==32: # finished grip
                 print("finished")
-                d, dphi, ccres=check_catched(self.p[self.catcher], self.p[0], self.v[0])
-                
-                self.get_logger().info(f'dist to ball: {d}, dphi: {dphi}')
-                if ccres:
-                    self.get_logger().info(f'---RM{self.catcher} caught ball')
-                    self.target_code[self.catcher]=34
-                else: # recatch
-                    print("not catch d:", d)
-                    print("not catch dphi", dphi)
-                    self.get_logger().info(f'recatch')
-                    self.target_code[self.catcher]=30
+                if self.use_visual_catch and self.catcher in [1, 2, 3]:
+                    caught, fresh, age = self.visual_catch_result(self.catcher)
+                    elapsed = time.time() - self.catch_attempt_time[self.catcher]
+                    self.get_logger().info(
+                        f'visual catch RM{self.catcher}: caught={caught}, fresh={fresh}, '
+                        f'age={age:.2f}s, elapsed={elapsed:.2f}s'
+                    )
+                    if caught:
+                        self.get_logger().info(f'---RM{self.catcher} caught ball by vision')
+                        self.target_code[self.catcher]=34
+                    elif elapsed < self.visual_wait_sec:
+                        # Wait for one or more camera frames after the gripper has closed.
+                        pass
+                    else: # recatch
+                        self.get_logger().info(f'recatch: visual detector did not confirm the ball')
+                        self.target_code[self.catcher]=30
+                else:
+                    d, dphi, ccres=check_catched(self.p[self.catcher], self.p[0], self.v[0])
+                    self.get_logger().info(f'dist to ball: {d}, dphi: {dphi}')
+                    if ccres:
+                        self.get_logger().info(f'---RM{self.catcher} caught ball')
+                        self.target_code[self.catcher]=34
+                    else: # recatch
+                        print("not catch d:", d)
+                        print("not catch dphi", dphi)
+                        self.get_logger().info(f'recatch')
+                        self.target_code[self.catcher]=30
         elif self.target_code[self.catcher]==34: # if got ball, then take it to the yanshee kicker
             if to_ys:
                 ################### my

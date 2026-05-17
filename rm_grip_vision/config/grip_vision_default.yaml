@@ -1,0 +1,53 @@
+# Example parameters for rm_grip_vision/grip_vision_detector.
+# Current default scene:
+#   - green field/background
+#   - tennis ball coated by gray motion-capture reflective material
+# Tune with:
+#   ros2 run rm_grip_vision hsv_tuner --ros-args -p robot_name:=RM1
+
+grip_vision_detector:
+  ros__parameters:
+    # Lower-centre gripper ROI: [x_min, y_min, x_max, y_max], normalised.
+    roi: [0.24, 0.42, 0.76, 0.96]
+
+    # Default segmentation for gray ball on green background.
+    segmentation_mode: gray_on_green
+
+    # Gray ball candidate.  Hue is not used for gray; low saturation / near-neutral
+    # chroma and valid brightness are more stable.
+    gray_s_max: 85
+    gray_v_min: 35
+    gray_v_max: 255
+    use_lab_gray: true
+    lab_chroma_max: 24.0
+    lab_l_min: 35
+    lab_l_max: 255
+
+    # Green background suppression.  Pixels inside this green range are removed
+    # from the gray candidate mask.
+    use_green_suppression: true
+    green_h_min: 35
+    green_h_max: 95
+    green_s_min: 45
+    green_v_min: 35
+
+    # Legacy coloured-ball HSV mode.  These only take effect when:
+    #   segmentation_mode: hsv_ranges
+    hsv_lower: [0, 70, 60]
+    hsv_upper: [28, 255, 255]
+    hsv_lower2: [170, 70, 60]
+    hsv_upper2: [179, 255, 255]
+    use_second_hsv_range: false
+
+    # Geometric/stability filters.
+    min_area_fraction: 0.004
+    max_area_fraction: 0.45
+    min_circularity: 0.25
+    confidence_threshold: 0.55
+    center_x_tolerance: 0.24
+    center_y_min: 0.42
+    history_size: 5
+    required_detections: 3
+    blur_kernel: 5
+    morph_kernel: 5
+    publish_debug: false
