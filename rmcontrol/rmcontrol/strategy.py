@@ -265,10 +265,10 @@ class Strategy(Node):
         #     self.catcher=2
         if pb[0]<0:
             self.catcher=3
-            self.kickoff=2
+            self.kickoff=3
         elif pb[0]>=0:
             self.catcher=2
-            self.kickoff=5
+            self.kickoff=1
 
     def command(self):
         self.ctrl=Ctrl(code=self.target_code, pose=nparray_to_pose2d(self.rel_cmd))
@@ -379,7 +379,7 @@ class Strategy(Node):
             self.target_pose[self.catcher]=self.catch_pose
             # self.get_logger().info(f'catcher state: {self.agent_status[self.catcher]}')
             # self.get_logger().info(f'dist: {distance(self.p[self.catcher], self.target_pose[self.catcher])}')
-            if self.agent_status[self.catcher]==30 and check_catchable(self.p[self.catcher], self.p[0]):
+            if self.agent_status[self.catcher]==30:
                 self.target_code[self.catcher]=32
                 self.catch_attempt_time[self.catcher]=time.time()
                 self.grip_vision_caught[self.catcher]=False
@@ -428,10 +428,10 @@ class Strategy(Node):
                 #     self.target_pose[self.catcher]=np.array([self.p_ys[1][0]+0.39, self.p_ys[1][1]-0.03, pi])
                 # elif self.kickoff==5:
                 #     self.target_pose[self.catcher]=np.array([self.p_ys[4][0]-0.39, self.p_ys[4][1]+0.04, 0])
-                if self.kickoff==2:
+                if self.kickoff==1:
                     self.target_pose[self.catcher]=np.array([self.p_ys[0][0]+0.39, self.p_ys[0][1]-0.03, pi])
-                elif self.kickoff==5:
-                    self.target_pose[self.catcher]=np.array([self.p_ys[0][0]-0.39, self.p_ys[0][1]+0.04, 0])
+                elif self.kickoff==3:
+                    self.target_pose[self.catcher]=np.array([self.p_ys[2][0]-0.39, self.p_ys[2][1]+0.04, 0])
                 
                 ################### end
 

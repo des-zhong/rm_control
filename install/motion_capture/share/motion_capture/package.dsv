@@ -1,0 +1,9 @@
+source;share/motion_capture/hook/pythonpath.ps1
+source;share/motion_capture/hook/pythonpath.dsv
+source;share/motion_capture/hook/pythonpath.sh
+source;share/motion_capture/hook/ament_prefix_path.ps1
+source;share/motion_capture/hook/ament_prefix_path.dsv
+source;share/motion_capture/hook/ament_prefix_path.sh
+source;../../build/motion_capture/share/motion_capture/hook/pythonpath_develop.ps1
+source;../../build/motion_capture/share/motion_capture/hook/pythonpath_develop.dsv
+source;../../build/motion_capture/share/motion_capture/hook/pythonpath_develop.sh

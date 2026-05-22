@@ -1,0 +1,9 @@
+source;share/yscontrol/hook/pythonpath.ps1
+source;share/yscontrol/hook/pythonpath.dsv
+source;share/yscontrol/hook/pythonpath.sh
+source;share/yscontrol/hook/ament_prefix_path.ps1
+source;share/yscontrol/hook/ament_prefix_path.dsv
+source;share/yscontrol/hook/ament_prefix_path.sh
+source;../../build/yscontrol/share/yscontrol/hook/pythonpath_develop.ps1
+source;../../build/yscontrol/share/yscontrol/hook/pythonpath_develop.dsv
+source;../../build/yscontrol/share/yscontrol/hook/pythonpath_develop.sh

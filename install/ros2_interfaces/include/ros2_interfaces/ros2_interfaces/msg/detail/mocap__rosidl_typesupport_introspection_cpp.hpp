@@ -1,0 +1,1 @@
+/home/des/Projects/rmyscontrol/src/build/ros2_interfaces/rosidl_typesupport_introspection_cpp/ros2_interfaces/msg/detail/mocap__rosidl_typesupport_introspection_cpp.hpp

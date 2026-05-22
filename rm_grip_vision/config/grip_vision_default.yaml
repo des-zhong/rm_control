@@ -15,21 +15,27 @@ grip_vision_detector:
 
     # Gray ball candidate.  Hue is not used for gray; low saturation / near-neutral
     # chroma and valid brightness are more stable.
-    gray_s_max: 85
-    gray_v_min: 35
-    gray_v_max: 255
+    # gray_s_max: 85
+    # gray_v_min: 35
+    # gray_v_max: 255
     use_lab_gray: true
-    lab_chroma_max: 24.0
-    lab_l_min: 35
-    lab_l_max: 255
+    # lab_chroma_max: 24.0
+    # lab_l_min: 35
+    # lab_l_max: 255
+    gray_s_max: 66
+    gray_v_min: 76
+    gray_v_max: 131
+    lab_chroma_max: 7
+    lab_l_min: 0
+    lab_l_max: 154
 
     # Green background suppression.  Pixels inside this green range are removed
     # from the gray candidate mask.
     use_green_suppression: true
-    green_h_min: 35
-    green_h_max: 95
-    green_s_min: 45
-    green_v_min: 35
+    green_h_min: 42
+    green_h_max: 53
+    green_s_min: 16
+    green_v_min: 0
 
     # Legacy coloured-ball HSV mode.  These only take effect when:
     #   segmentation_mode: hsv_ranges

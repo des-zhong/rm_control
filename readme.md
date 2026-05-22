@@ -196,7 +196,7 @@ ros2 topic echo /RM2/grip_vision/caught
 ros2 topic echo /RM3/grip_vision/caught
 ```
 
-查看检测置信度：
+查看检测置信度：ros2 run roscpp pub_pos
 
 ```bash
 ros2 topic echo /RM1/grip_vision/confidence
@@ -228,7 +228,7 @@ rqt_image_view
 
 ```bash
 ros2 run rm_grip_vision hsv_tuner --ros-args -p robot_name:=RM1
-ros2 run rm_grip_vision hsv_tuner --ros-args -p robot_name:=RM2
+ros2 run rm_grip_vision hsv_tuner --ros-argros2 run rm_grip_vision hsv_tuner --ros-args -p robot_name:=RM2s -p robot_name:=RM2
 ros2 run rm_grip_vision hsv_tuner --ros-args -p robot_name:=RM3
 ```
 
@@ -278,7 +278,7 @@ required_detections: 3
 ## 参考仓库和文档
 
 RoboMaster ROS2 驱动：
-
+ros2 launch rm_grip_vision rm123_grip_vision_and_strategy.launch.py publish_debug:=true
 ```text
 https://github.com/jeguzzi/robomaster_ros
 ```
