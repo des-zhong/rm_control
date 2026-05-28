@@ -1,20 +1,39 @@
-# Example parameters for rm_grip_vision/grip_vision_detector.
-# Current default scene:
-#   - green field/background
-#   - tennis ball coated by gray motion-capture reflective material
-# Tune with:
-#   ros2 run rm_grip_vision hsv_tuner --ros-args -p robot_name:=RM1
+# rm_grip_vision 默认参数
+#
+# 使用 /** 是有意的：三个 detector launch 后节点名分别是
+# RM1_grip_vision / RM2_grip_vision / RM3_grip_vision，调参工具节点名是
+# segmentation_tuner。通配写法可以让它们共用同一套参数。
+#
+# 当前推荐场景：
+#   - 球：灰色/银灰色动捕反光网球
+#   - 背景：绿色场地
+#   - 默认模式：gray_on_green
 
-grip_vision_detector:
+/**:
   ros__parameters:
-    # Lower-centre gripper ROI: [x_min, y_min, x_max, y_max], normalised.
+    # ROI 是归一化图像坐标：[x_min, y_min, x_max, y_max]。
+    # 建议只覆盖夹爪闭合后球可能出现的位置。ROI 太大会带入夹爪、
+    # 地面和背景；ROI 太小可能漏掉被夹住的球。
     roi: [0.24, 0.42, 0.76, 0.96]
 
-    # Default segmentation for gray ball on green background.
+    # 分割模式：
+    #   gray_on_green：当前默认，适合灰色/银灰色反光网球 + 绿色场地。
+    #   bgr_ranges：直接在 OpenCV BGR 原图上阈值分割。注意顺序是 [B, G, R]。
+    #   rgb_ranges：先把 OpenCV BGR 图像转为 RGB，再按 [R, G, B] 分割。
+    #   hsv_ranges：旧彩色目标模式，主要用于彩色球，不是当前灰色球首选。
     segmentation_mode: gray_on_green
 
-    # Gray ball candidate.  Hue is not used for gray; low saturation / near-neutral
-    # chroma and valid brightness are more stable.
+    # BGR 阈值示例。切换到 bgr_ranges 前必须先用 segmentation_tuner 调参；
+    # 默认 [0,0,0] 到 [255,255,255] 会选中整块 ROI，容易误判。
+    bgr_lower: [0, 0, 0]
+    bgr_upper: [255, 255, 255]
+
+    # RGB 阈值示例。仅在 segmentation_mode: rgb_ranges 时使用。
+    rgb_lower: [0, 0, 0]
+    rgb_upper: [255, 255, 255]
+
+    # gray_on_green 的灰色候选参数。灰色/银灰色目标 Hue 不稳定，
+    # 因此主要看低饱和度、亮度范围和 Lab 近中性灰。
     gray_s_max: 85
     gray_v_min: 35
     gray_v_max: 255
@@ -23,31 +42,45 @@ grip_vision_detector:
     lab_l_min: 35
     lab_l_max: 255
 
-    # Green background suppression.  Pixels inside this green range are removed
-    # from the gray candidate mask.
+    # 绿色背景抑制。开启后会从候选 mask 中扣掉绿色场地像素。
     use_green_suppression: true
     green_h_min: 35
     green_h_max: 95
     green_s_min: 45
     green_v_min: 35
 
-    # Legacy coloured-ball HSV mode.  These only take effect when:
-    #   segmentation_mode: hsv_ranges
+    # hsv_ranges 彩色目标参数，仅在 segmentation_mode: hsv_ranges 时使用。
     hsv_lower: [0, 70, 60]
     hsv_upper: [28, 255, 255]
     hsv_lower2: [170, 70, 60]
     hsv_upper2: [179, 255, 255]
     use_second_hsv_range: false
 
-    # Geometric/stability filters.
+    # detection_confidence 调试参数：
+    # /RMx/grip_vision/confidence 发布检测质量分数，只用于观察 mask/轮廓质量，
+    # 不决定最终 /RMx/grip_vision/caught。
     min_area_fraction: 0.004
     max_area_fraction: 0.45
-    min_circularity: 0.25
-    confidence_threshold: 0.55
     center_x_tolerance: 0.24
     center_y_min: 0.42
+
+    # caught 判断参数：
+    # /caught 由单帧 caught_score + 面积/位置/圆度门限 + 多帧稳定共同决定。
+    # 这组参数比 confidence 更重要，实机误判时优先调这里和 ROI。
+    caught_min_area_fraction: 0.004
+    caught_max_area_fraction: 0.35
+    caught_center_x_tolerance: 0.28
+    caught_center_y_min: 0.42
+    caught_allow_low_circularity: true
+    caught_min_circularity: 0.06
+    # 兼容旧圆度参数：caught_allow_low_circularity=false 时使用这个更严格阈值。
+    min_circularity: 0.25
+    caught_score_threshold: 0.45
+    caught_required_frames: 3
     history_size: 5
-    required_detections: 3
+
+    # 图像预处理和调试输出。
     blur_kernel: 5
     morph_kernel: 5
     publish_debug: false
+    log_period_sec: 2.0

@@ -1,153 +1,152 @@
-# rm_grip_vision
+# rm_grip_vision 实机调试说明
 
-This package replaces the motion-capture based *grasp success* judgement in `rmcontrol.strategy` with a visual detector for RoboMaster EP gripper cameras.
+## 功能
 
-The current default detector is designed for the updated scene:
+`rm_grip_vision` 用 RoboMaster EP 夹爪摄像头判断球是否被夹住。节点订阅 `/RMx/camera/image_color`，裁剪 ROI 后做颜色/灰度分割，并发布：
 
-- green field/background;
-- tennis ball coated with gray motion-capture reflective material;
-- no neural-network inference by default.
+- `/RMx/grip_vision/caught`：最终抓取结果，`strategy.py` 用它决定是否进入 `target_code=34`
+- `/RMx/grip_vision/confidence`：检测质量指标，只用于调试
+- `/RMx/grip_vision/caught_score`：抓取判断分数，真正影响 caught
+- `/RMx/grip_vision/debug_image`：调试图，可显示 ROI、mask、轮廓和失败原因
 
-The detector subscribes to `/RMx/camera/image_color`, crops the lower-centre gripper region, segments a gray ball candidate while suppressing green background pixels, filters contours by area/circularity, and publishes:
-
-- `/RMx/grip_vision/caught` (`std_msgs/Bool`)
-- `/RMx/grip_vision/confidence` (`std_msgs/Float32`)
-- `/RMx/grip_vision/debug_image` (`sensor_msgs/Image`, optional)
-
-The patched `rmcontrol/rmcontrol/strategy.py` subscribes to `/RM1..3/grip_vision/caught`; after the gripper is closed, it waits briefly for a fresh visual result. If the detector confirms the ball, strategy switches to code `34`; otherwise it returns to code `30` and tries again. The old motion-capture `check_catched()` path remains available with `use_visual_catch:=false`.
-
-## Segmentation logic for gray ball on green background
-
-Because the tennis ball is coated by gray motion-capture reflective material, hue is no longer a reliable feature. The detector therefore uses `segmentation_mode:=gray_on_green`:
-
-```text
-ROI crop
-  -> HSV low-saturation gray candidate
-  -> optional Lab near-neutral gray candidate
-  -> green background suppression
-  -> morphology open/close
-  -> contour area + circularity + ROI-position score
-  -> multi-frame stable caught decision
-```
-
-Important parameters:
-
-```yaml
-segmentation_mode: gray_on_green
-
-# Gray candidate: low saturation / near-neutral colour.
-gray_s_max: 85
-gray_v_min: 35
-gray_v_max: 255
-use_lab_gray: true
-lab_chroma_max: 24.0
-lab_l_min: 35
-lab_l_max: 255
-
-# Green field/background suppression.
-use_green_suppression: true
-green_h_min: 35
-green_h_max: 95
-green_s_min: 45
-green_v_min: 35
-```
-
-If the detector misses the gray ball, usually increase `gray_s_max` or `lab_chroma_max`, or lower `gray_v_min`. If it detects the green field/background, increase `green_s_min` slightly or narrow `green_h_min/green_h_max`. If it detects black gripper parts, tighten `roi`, raise `gray_v_min`, or raise `min_circularity`.
-
-## Build
-
-Place this repository in your ROS 2 workspace `src` together with `robomaster_ros`, then build:
+## 编译
 
 ```bash
-cd <ros2_ws>
-source /opt/ros/<ROS_DISTRO>/setup.bash
-colcon build --symlink-install
+colcon build --symlink-install --packages-select rm_grip_vision rmcontrol
 source install/setup.bash
 ```
 
-Install runtime dependencies if missing:
+## 启动
+
+只启动 RM1/RM2/RM3 视觉检测：
 
 ```bash
-sudo apt install ros-<ROS_DISTRO>-cv-bridge python3-opencv python3-numpy
+ros2 launch rm_grip_vision rm123_grip_vision.launch.py publish_debug:=true
 ```
 
-## Run
-
-Start the robots as before:
-
-```bash
-ros2 launch rmcontrol ep_startup.launch.py
-ros2 launch rmcontrol ep_control.launch.py
-```
-
-Then launch the visual detectors and the visual-enabled strategy:
+视觉检测和 strategy 一起启动：
 
 ```bash
 ros2 launch rm_grip_vision rm123_grip_vision_and_strategy.launch.py publish_debug:=true
 ```
 
-Alternatively, if you prefer to keep your current `ros2 run rmcontrol strategy` terminal, start only the detectors:
+指定配置文件：
 
 ```bash
-ros2 launch rm_grip_vision rm123_grip_vision.launch.py publish_debug:=true
-ros2 run rmcontrol strategy --ros-args -p use_visual_catch:=true
+ros2 launch rm_grip_vision rm123_grip_vision.launch.py \
+  config_file:=install/rm_grip_vision/share/rm_grip_vision/config/grip_vision_default.yaml \
+  publish_debug:=true
 ```
 
-## Tune gray/green segmentation
+## 调参工具
 
-Run the tuner on a machine with a display:
+推荐使用新命令：
+
+```bash
+ros2 run rm_grip_vision segmentation_tuner --ros-args \
+  -p robot_name:=RM1 \
+  --params-file install/rm_grip_vision/share/rm_grip_vision/config/grip_vision_default.yaml
+```
+
+旧命令仍兼容，但不推荐新用户继续使用：
 
 ```bash
 ros2 run rm_grip_vision hsv_tuner --ros-args -p robot_name:=RM1
 ```
 
-The tuner shows:
+`segmentation_tuner` 里先调 ROI，再调分割模式和颜色阈值。按 `p` 打印当前参数，复制到 `rm_grip_vision/config/grip_vision_default.yaml`。
 
-- `gray_candidate`: low-saturation / near-neutral candidate pixels;
-- `green_background_suppressed`: pixels treated as green background;
-- `final_mask`: candidate mask after green suppression and morphology;
-- `camera_with_roi`: original camera image with ROI overlay.
-
-Keys:
-
-- `p`: print parameters you can copy into launch/config.
-- `q`: quit.
-
-Useful detector launch example:
+## 查看 Topic
 
 ```bash
-ros2 run rm_grip_vision grip_vision_detector --ros-args \
-  -p robot_name:=RM1 \
-  -p image_topic:=/RM1/camera/image_color \
-  -p segmentation_mode:=gray_on_green \
-  -p gray_s_max:=85 \
-  -p gray_v_min:=35 \
-  -p lab_chroma_max:=24 \
-  -p green_h_min:=35 \
-  -p green_h_max:=95 \
-  -p roi:="[0.24, 0.42, 0.76, 0.96]" \
-  -p publish_debug:=true
+ros2 topic echo /RM1/grip_vision/caught
+ros2 topic echo /RM1/grip_vision/confidence
+ros2 topic echo /RM1/grip_vision/caught_score
+ros2 run rqt_image_view rqt_image_view /RM1/grip_vision/debug_image
 ```
 
-## Legacy coloured-ball mode
+三类输出区别：
 
-If you switch back to a coloured ball, set:
+- `confidence`：检测质量分数，只用于看 mask 和轮廓是否像目标，不决定最终抓取
+- `caught_score`：抓取判断分数，由面积、水平位置、纵向位置计算
+- `caught`：最终布尔结果，由单帧 caught 判断和多帧稳定共同决定
+
+## 关键参数
+
+`segmentation_mode`：
+
+- `gray_on_green`：默认模式，适合灰色/银灰色反光网球 + 绿色场地
+- `bgr_ranges`：OpenCV 原图 BGR 阈值，顺序是 `[B, G, R]`
+- `rgb_ranges`：先转 RGB，再按 `[R, G, B]` 阈值
+- `hsv_ranges`：旧彩色目标模式，不是当前灰色球首选
+
+`roi: [x_min, y_min, x_max, y_max]`：
+
+- 归一化比例，范围 0.0 到 1.0
+- 尽量只覆盖夹爪闭合后球可能出现的位置
+- 如果夹爪和球颜色接近，优先缩小 ROI
+
+灰色球参数：
+
+- `gray_s_max`：灰色候选最大饱和度
+- `gray_v_min / gray_v_max`：灰色候选亮度范围
+- `lab_chroma_max`：Lab 中允许偏离中性灰的程度
+- `lab_l_min / lab_l_max`：Lab 亮度范围
+
+绿色背景抑制：
+
+- `green_h_min / green_h_max`
+- `green_s_min`
+- `green_v_min`
+
+BGR/RGB：
+
+- `bgr_lower / bgr_upper`：OpenCV BGR 阈值，切换到 `bgr_ranges` 前必须先调，否则默认会选中整块 ROI
+- `rgb_lower / rgb_upper`：RGB 阈值，仅 `rgb_ranges` 使用
+
+检测质量：
+
+- `min_area_fraction / max_area_fraction`：影响 `confidence` 的面积范围
+- `center_x_tolerance / center_y_min`：影响 `confidence` 的位置评分
+
+抓取判断：
+
+- `caught_min_area_fraction / caught_max_area_fraction`：真正影响 caught 的面积范围
+- `caught_center_x_tolerance`：球中心允许偏离 ROI 中线的程度
+- `caught_center_y_min`：球中心最低纵向位置
+- `caught_allow_low_circularity / caught_min_circularity`：允许被夹爪遮挡后的低圆度轮廓
+- `min_circularity`：当 `caught_allow_low_circularity=false` 时使用的严格圆度阈值
+- `caught_score_threshold`：单帧抓取分数阈值
+- `caught_required_frames`：需要连续或窗口内多少帧满足
+- `history_size`：稳定判断窗口长度
+
+## 推荐调参流程
+
+1. 确认摄像头 topic 正常：`ros2 topic list | grep camera`
+2. 启动 `segmentation_tuner`
+3. 先调 ROI，让白框只覆盖夹爪中球可能出现的位置
+4. 默认先试 `gray_on_green`
+5. 如果原图中 BGR/RGB 差异更明显，再切到 `bgr_ranges` 或 `rgb_ranges`
+6. 看 `final_mask`：有球时应稳定选中球，没有球时不应选中夹爪或绿色背景
+7. 看 `/caught_score` 是否随球进入夹爪明显升高
+8. 看 `/caught` 是否稳定
+9. 最后接入 strategy 做抓取闭环测试
+
+## ROI 调参提示
+
+ROI 越大，越容易把夹爪、地面、背景带进来；ROI 越小，越容易漏掉被夹住的球。调好 ROI 后按 `p`，把打印出来的 `roi: [...]` 复制回 config。
+
+## 回退
+
+关闭视觉抓取判断，回到动捕 `check_catched()`：
 
 ```bash
--p segmentation_mode:=hsv_ranges \
--p hsv_lower:="[0, 70, 60]" \
--p hsv_upper:="[28, 255, 255]"
+ros2 run rmcontrol strategy --ros-args -p use_visual_catch:=false
 ```
 
-## Optional neural-network fallback
-
-The gray-on-green detector is the intended solution. If lighting/background makes classical segmentation unreliable, `scripts/train_yolo_ball.py` is included as a fallback training helper:
+关闭 LOS 接近，回到原接近逻辑：
 
 ```bash
-python3 -m pip install ultralytics
-python3 src/rm_control-main/rm_grip_vision/scripts/train_yolo_ball.py \
-  --data src/rm_control-main/soccervision.v3i.yolov8/data.yaml \
-  --model yolov8n.pt --epochs 80 --imgsz 640 --class-id 0
+ros2 launch rm_grip_vision rm123_grip_vision_and_strategy.launch.py \
+  use_los_catch_approach:=false
 ```
-
-Before using this fallback, confirm that your dataset actually contains labelled ball boxes for class `0` (`ball1`) in the label files.

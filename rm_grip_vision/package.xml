@@ -3,7 +3,7 @@
 <package format="3">
   <name>rm_grip_vision</name>
   <version>0.1.0</version>
-  <description>HSV/contour based visual grasp-success detector for RoboMaster EP gripper camera.</description>
+  <description>Classical segmentation based visual grasp-success detector for RoboMaster EP gripper camera.</description>
   <maintainer email="zhuhaier1992@163.com">rm_control maintainers</maintainer>
   <license>MIT</license>
 
@@ -12,6 +12,9 @@
   <depend>std_msgs</depend>
   <depend>cv_bridge</depend>
 
+  <exec_depend>ament_index_python</exec_depend>
+  <exec_depend>launch</exec_depend>
+  <exec_depend>launch_ros</exec_depend>
   <exec_depend>python3-opencv</exec_depend>
   <exec_depend>python3-numpy</exec_depend>
 

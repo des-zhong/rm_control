@@ -97,17 +97,17 @@ class Strategy(Node):
         self.ctrl=Ctrl()
         self.wait_for_ys=False
         self.change_time=time.time()
+        self.catch_pose=target_poses[0].copy()
 
-        # Visual grasp-success judgement.  The old approach called
-        # check_catched() here, which depends on motion-capture calibration
-        # between the ball and the RoboMaster body.  Keep the parameterised
-        # fallback, but use /RMx/grip_vision/caught by default.
+        # 视觉抓取结果接入：默认使用 /RMx/grip_vision/caught 判断闭爪后是否成功。
+        # use_visual_catch:=false 时仍回退到原动捕 check_catched() 逻辑。
         self.use_visual_catch = bool(self.declare_parameter('use_visual_catch', True).value)
         self.visual_wait_sec = float(self.declare_parameter('visual_wait_sec', 0.8).value)
         self.visual_timeout_sec = float(self.declare_parameter('visual_timeout_sec', 0.7).value)
         self.grip_vision_caught=[False]*no_rms
         self.grip_vision_time=[0.0]*no_rms
         self.catch_attempt_time=[0.0]*no_rms
+        self.last_visual_wait_log_time=[0.0]*no_rms
         self.grip_vision_subs=[]
         if self.use_visual_catch:
             for rid in [1, 2, 3]:
@@ -119,9 +119,54 @@ class Strategy(Node):
                         5,
                     )
                 )
-            self.get_logger().info('visual catch enabled: using /RM1..3/grip_vision/caught')
+            self.get_logger().info('视觉抓取判断已启用：订阅 /RM1..3/grip_vision/caught')
         else:
-            self.get_logger().info('visual catch disabled: using motion-capture check_catched()')
+            self.get_logger().info('视觉抓取判断已关闭：使用动捕 check_catched() 回退逻辑')
+
+        # LOS 抓球接近：只改变 target_code=30 阶段的目标点/速度限制；
+        # 最终是否闭爪仍由原 check_catchable() 决定。
+        self.use_los_catch_approach = bool(
+            self.declare_parameter('use_los_catch_approach', True).value
+        )
+        self.los_align_distance = float(
+            self.declare_parameter('los_align_distance', 0.75).value
+        )
+        self.los_align_threshold = float(
+            self.declare_parameter('los_align_threshold', 0.16).value
+        )
+        self.los_slow_distance = float(
+            self.declare_parameter('los_slow_distance', 0.55).value
+        )
+        self.los_min_step = float(self.declare_parameter('los_min_step', 0.04).value)
+        self.los_max_step = float(self.declare_parameter('los_max_step', 0.22).value)
+        self.los_final_distance = float(
+            self.declare_parameter('los_final_distance', 0.30).value
+        )
+        self.los_max_forward_speed = float(
+            self.declare_parameter('los_max_forward_speed', 0.35).value
+        )
+        self.los_min_forward_speed = float(
+            self.declare_parameter('los_min_forward_speed', 0.08).value
+        )
+        self.los_max_lateral_speed = float(
+            self.declare_parameter('los_max_lateral_speed', 0.18).value
+        )
+        self.los_max_angular_speed = float(
+            self.declare_parameter('los_max_angular_speed', 1.20).value
+        )
+        self.los_log_period_sec = float(
+            self.declare_parameter('los_log_period_sec', 0.6).value
+        )
+        self.los_catch_phase=''
+        self.los_ball_distance=0.0
+        self.los_heading_error=0.0
+        self.los_last_log_time=0.0
+        if self.use_los_catch_approach:
+            self.get_logger().info(
+                'LOS 抓球接近已启用：近距离先对齐球，再慢速接近'
+            )
+        else:
+            self.get_logger().info('LOS 抓球接近已关闭：使用原始 catch_pose 接近逻辑')
 
 
     # def comm_srv_cb(self, req, resp):
@@ -144,11 +189,99 @@ class Strategy(Node):
         self.grip_vision_time[rid]=time.time()
 
     def visual_catch_result(self, rid):
-        """Return (caught, fresh, age) from the visual detector for robot rid."""
+        """读取视觉节点结果；只有闭爪之后的新鲜结果才会被采用。"""
         age=time.time()-self.grip_vision_time[rid]
         fresh=age <= self.visual_timeout_sec
         caught=fresh and self.grip_vision_caught[rid] and self.grip_vision_time[rid] >= self.catch_attempt_time[rid]
         return caught, fresh, age
+
+    def log_los_phase(self, phase, dist, heading_error):
+        """LOS 阶段日志，按阶段变化或节流周期输出，避免刷屏。"""
+        now=time.time()
+        if phase!=self.los_catch_phase or now-self.los_last_log_time>=self.los_log_period_sec:
+            self.los_last_log_time=now
+            if phase=='align':
+                self.get_logger().info(
+                    f'RM{self.catcher} LOS 对齐阶段: dist={dist:.2f}, '
+                    f'heading_error={heading_error:.2f}'
+                )
+            elif phase=='slow_approach':
+                self.get_logger().info(
+                    f'RM{self.catcher} LOS 慢速接近阶段: dist={dist:.2f}, '
+                    f'heading_error={heading_error:.2f}'
+                )
+            elif phase=='catchable':
+                self.get_logger().info(
+                    f'RM{self.catcher} 已满足可夹取条件: dist={dist:.2f}, '
+                    f'heading_error={heading_error:.2f}'
+                )
+            elif phase=='far_approach':
+                self.get_logger().info(
+                    f'RM{self.catcher} LOS 远距离接近阶段: dist={dist:.2f}, '
+                    f'heading_error={heading_error:.2f}'
+                )
+        self.los_catch_phase=phase
+
+    def calc_los_catch_pose(self, base_catch_pose):
+        """根据球的视线角生成更温和的抓球接近目标点。"""
+        ps=self.p[self.catcher]
+        pb=self.p[0]
+        dx=pb[0]-ps[0]
+        dy=pb[1]-ps[1]
+        dist=sqrt(dx*dx+dy*dy)
+        if dist<1e-6:
+            return base_catch_pose
+
+        los_angle=atan2(dy, dx)
+        heading_error=limit_pi(los_angle-ps[2])
+        self.los_ball_distance=dist
+        self.los_heading_error=heading_error
+
+        if check_catchable(ps, pb):
+            self.log_los_phase('catchable', dist, heading_error)
+            return base_catch_pose
+
+        if dist>self.los_align_distance:
+            self.log_los_phase('far_approach', dist, heading_error)
+            return base_catch_pose
+
+        if abs(heading_error)>self.los_align_threshold:
+            self.log_los_phase('align', dist, heading_error)
+            return np.array([ps[0], ps[1], los_angle])
+
+        self.log_los_phase('slow_approach', dist, heading_error)
+        slow_span=max(1e-6, self.los_slow_distance-self.los_final_distance)
+        ratio=max(0.0, min(1.0, (dist-self.los_final_distance)/slow_span))
+        step=self.los_min_step+ratio*(self.los_max_step-self.los_min_step)
+        step=max(self.los_min_step, min(self.los_max_step, step))
+        desired_dist=max(self.los_final_distance, dist-step)
+        target_x=pb[0]-cos(los_angle)*desired_dist
+        target_y=pb[1]-sin(los_angle)*desired_dist
+        return np.array([target_x, target_y, los_angle])
+
+    def limit_los_catcher_cmd(self, cmd):
+        """LOS 接近阶段限制前进、横移和角速度，避免未对齐时顶开球。"""
+        if not self.use_los_catch_approach or self.catcher==0:
+            return cmd
+        if self.target_code[self.catcher]>30:
+            return cmd
+
+        limited=cmd.copy()
+        phase=self.los_catch_phase
+        if phase=='align':
+            limited[0]=0.0
+            limited[1]=0.0
+
+        max_forward=self.los_max_forward_speed
+        if phase=='slow_approach':
+            slow_span=max(1e-6, self.los_slow_distance-self.los_final_distance)
+            ratio=max(0.0, min(1.0, (self.los_ball_distance-self.los_final_distance)/slow_span))
+            max_forward=self.los_min_forward_speed+ratio*(self.los_max_forward_speed-self.los_min_forward_speed)
+
+        limited[0]=max(-max_forward, min(max_forward, limited[0]))
+        limited[1]=max(-self.los_max_lateral_speed, min(self.los_max_lateral_speed, limited[1]))
+        limited[2]=max(-self.los_max_angular_speed, min(self.los_max_angular_speed, limited[2]))
+        return limited
 
     def status_cb(self, req, resp):
         if req.id==self.catcher and req.status==30:
@@ -360,7 +493,11 @@ class Strategy(Node):
         if self.target_code[self.catcher]<=30:  # move to ball
             rclpy.spin_once(self)
             
-            self.catch_pose=calc_catching_pose(self.p[0], self.p[self.catcher], self.v[0])
+            base_catch_pose=calc_catching_pose(self.p[0], self.p[self.catcher], self.v[0])
+            if self.use_los_catch_approach:
+                self.catch_pose=self.calc_los_catch_pose(base_catch_pose)
+            else:
+                self.catch_pose=base_catch_pose
             d, dphi, ccres=check_catched(self.p[self.catcher], self.p[0], self.v[0])
             # print(self.p[0], self.p[self.catcher],self.catch_pose)
             if self.count > 1000:
@@ -380,11 +517,14 @@ class Strategy(Node):
             # self.get_logger().info(f'catcher state: {self.agent_status[self.catcher]}')
             # self.get_logger().info(f'dist: {distance(self.p[self.catcher], self.target_pose[self.catcher])}')
             if self.agent_status[self.catcher]==30 and check_catchable(self.p[self.catcher], self.p[0]):
+                if self.use_los_catch_approach:
+                    self.log_los_phase('catchable', d, dphi)
                 self.target_code[self.catcher]=32
                 self.catch_attempt_time[self.catcher]=time.time()
                 self.grip_vision_caught[self.catcher]=False
                 self.grip_vision_time[self.catcher]=0.0
-                self.get_logger().info(f'RM{self.catcher} ready to grip, code: {self.target_code[self.catcher]}')
+                self.last_visual_wait_log_time[self.catcher]=0.0
+                self.get_logger().info(f'RM{self.catcher} 已到可夹取位置，准备闭爪，code={self.target_code[self.catcher]}')
             
         elif self.target_code[self.catcher]==32: # grip
             
@@ -393,33 +533,41 @@ class Strategy(Node):
             # self.get_logger().info(f'dphi: {dphi}, d: {d}')
             # self.get_logger().info(f'catcher state: {self.agent_status[self.catcher]}')
             if self.agent_status[self.catcher]==32: # finished grip
-                print("finished")
                 if self.use_visual_catch and self.catcher in [1, 2, 3]:
                     caught, fresh, age = self.visual_catch_result(self.catcher)
                     elapsed = time.time() - self.catch_attempt_time[self.catcher]
-                    self.get_logger().info(
-                        f'visual catch RM{self.catcher}: caught={caught}, fresh={fresh}, '
-                        f'age={age:.2f}s, elapsed={elapsed:.2f}s'
-                    )
                     if caught:
-                        self.get_logger().info(f'---RM{self.catcher} caught ball by vision')
+                        self.get_logger().info(
+                            f'---RM{self.catcher} 视觉确认抓取成功: '
+                            f'age={age:.2f}s, elapsed={elapsed:.2f}s'
+                        )
                         self.target_code[self.catcher]=34
                     elif elapsed < self.visual_wait_sec:
                         # Wait for one or more camera frames after the gripper has closed.
+                        now=time.time()
+                        if now-self.last_visual_wait_log_time[self.catcher]>0.3:
+                            self.last_visual_wait_log_time[self.catcher]=now
+                            self.get_logger().info(
+                                f'RM{self.catcher} 等待视觉结果: '
+                                f'caught={caught}, fresh={fresh}, age={age:.2f}s'
+                            )
                         pass
                     else: # recatch
-                        self.get_logger().info(f'recatch: visual detector did not confirm the ball')
+                        self.get_logger().info(
+                            f'视觉超时或未确认抓取，RM{self.catcher} 重新抓取: '
+                            f'caught={caught}, fresh={fresh}, age={age:.2f}s'
+                        )
                         self.target_code[self.catcher]=30
                 else:
                     d, dphi, ccres=check_catched(self.p[self.catcher], self.p[0], self.v[0])
-                    self.get_logger().info(f'dist to ball: {d}, dphi: {dphi}')
+                    self.get_logger().info(f'动捕抓取检查: dist={d}, dphi={dphi}')
                     if ccres:
-                        self.get_logger().info(f'---RM{self.catcher} caught ball')
+                        self.get_logger().info(f'---RM{self.catcher} 动捕确认抓取成功')
                         self.target_code[self.catcher]=34
                     else: # recatch
                         print("not catch d:", d)
                         print("not catch dphi", dphi)
-                        self.get_logger().info(f'recatch')
+                        self.get_logger().info(f'动捕未确认抓取，重新抓取')
                         self.target_code[self.catcher]=30
         elif self.target_code[self.catcher]==34: # if got ball, then take it to the yanshee kicker
             if to_ys:
@@ -571,7 +719,10 @@ def main(args=None):
             [safe_range_x[1], safe_range_y[1],4], out=node.target_pose)
         if node.catcher!=0:
             if node.target_code[node.catcher]<33: # 追球阶段，对目标位置加上球的速度，加速追上
-                node.target_pose[node.catcher]=node.catch_pose+np.array([1.3*node.v[0][0], 1.5*node.v[0][1], 0])
+                if node.use_los_catch_approach:
+                    node.target_pose[node.catcher]=node.catch_pose
+                else:
+                    node.target_pose[node.catcher]=node.catch_pose+np.array([1.3*node.v[0][0], 1.5*node.v[0][1], 0])
             else:
                 node.target_pose[node.catcher]=tp_catch
 
@@ -587,6 +738,13 @@ def main(args=None):
                 if norm(vn)<vkick_min: # kicker不能太慢，容易漏球
                     vnew=vn/norm(vn)*vkick_min
                     node.rel_cmd[i]=np.array([vnew[0], vnew[1], node.rel_cmd[i][2]])
+            elif (
+                i==node.catcher and
+                node.use_los_catch_approach and
+                node.target_code[i]<=30 and
+                node.los_catch_phase in ['align', 'slow_approach', 'catchable']
+            ):
+                node.rel_cmd[i]=trans_relative_co(p, tp)
             elif len(node.rvo_res)==0 or distance(p, tp)<0.06: # 距离目标位置很近时不用rvo
                 node.rel_cmd[i]=trans_relative_co(p, tp)
                 if i==node.catcher:
@@ -598,6 +756,8 @@ def main(args=None):
                 # elif i==node.catcher:
                 #     # node.rel_cmd[i]=np.array([node.rel_cmd[i][0],node.rel_cmd[i][1], node.rel_cmd[i][2]])
                 #     node.rel_cmd[i]=too_slow(node.rel_cmd[i])
+            if i==node.catcher and node.use_los_catch_approach and node.target_code[i]<=30:
+                node.rel_cmd[i]=node.limit_los_catcher_cmd(node.rel_cmd[i])
             i+=1
 
         node.rel_cmd = node.rel_cmd * node.mask
