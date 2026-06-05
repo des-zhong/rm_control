@@ -19,13 +19,14 @@ setup(
     zip_safe=True,
     maintainer='rm_control maintainers',
     maintainer_email='zhuhaier1992@163.com',
-    description='HSV/contour based visual grasp-success detector for RoboMaster EP gripper camera.',
+    description='Classical segmentation based visual grasp-success detector for RoboMaster EP gripper camera.',
     license='MIT',
     tests_require=['pytest'],
     entry_points={
         'console_scripts': [
             'grip_vision_detector = rm_grip_vision.grip_vision_detector:main',
-            'hsv_tuner = rm_grip_vision.hsv_tuner:main',
+            'segmentation_tuner = rm_grip_vision.segmentation_tuner:main',
+            'hsv_tuner = rm_grip_vision.segmentation_tuner:main',
         ],
     },
 )

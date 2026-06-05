@@ -70,6 +70,7 @@ To stop RMs, stop strategy node and ep_startup.launch.py and s1_startup.launch.p
 Provided by Haier Zhu from THU SIGS under instruction of Prof. Li, Xiang.
 
 This work was supported in part by the National Natural Science Foundation of China under Grant U21A20517 and 52075290, and in part by the Science and Technology Innovation 2030-Key Project under Grant 2021ZD0201404.
+<<<<<<< HEAD
 
 
 # 新增：基于夹爪摄像头的视觉抓取成功判定
@@ -308,3 +309,5 @@ RoboMaster EP 小球跟踪参考：
 https://github.com/MaxwellJay256/ball-tracker
 ```
 
+=======
+>>>>>>> 17ab14573c3266d460a94893026b2ec7aa3f1cd4
