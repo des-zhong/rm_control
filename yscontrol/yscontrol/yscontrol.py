@@ -263,10 +263,11 @@ def main(args=None):
             # bot.send_kick(1)
             bot.receive=1
         elif bot.receive == BOT_APPROACHING: #1
-            bot.move_to_specific_direction(bot.anchor[2])
-            bot.move_to_position(bot.anchor[0], bot.anchor[1])
-            if bot.in_right_pos and bot.in_right_direction:
-                bot.wave()
+            pass
+            # bot.move_to_specific_direction(bot.anchor[2])
+            # bot.move_to_position(bot.anchor[0], bot.anchor[1])
+            # if bot.in_right_pos and bot.in_right_direction:
+            #     bot.wave()
         elif bot.receive==BOT_STANDBY: #0
             bot.stop()
             time.sleep(0.1)

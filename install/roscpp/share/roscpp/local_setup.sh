@@ -1,1 +1,0 @@
-/home/des/Projects/rmyscontrol/src/build/roscpp/ament_cmake_environment_hooks/local_setup.sh

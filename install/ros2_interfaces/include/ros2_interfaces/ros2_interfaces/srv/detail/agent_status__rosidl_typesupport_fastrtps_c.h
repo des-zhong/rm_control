@@ -1,1 +1,0 @@
-/home/des/Projects/rmyscontrol/src/build/ros2_interfaces/rosidl_typesupport_fastrtps_c/ros2_interfaces/srv/detail/agent_status__rosidl_typesupport_fastrtps_c.h

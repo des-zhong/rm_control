@@ -22,20 +22,21 @@ grip_vision_detector:
     # lab_chroma_max: 24.0
     # lab_l_min: 35
     # lab_l_max: 255
-    gray_s_max: 66
-    gray_v_min: 76
-    gray_v_max: 131
-    lab_chroma_max: 7
-    lab_l_min: 0
-    lab_l_max: 154
+    gray_s_max: 121
+    gray_v_min: 98
+    gray_v_max: 132
+    lab_chroma_max: 85
+    lab_l_min: 42
+    lab_l_max: 143
 
     # Green background suppression.  Pixels inside this green range are removed
     # from the gray candidate mask.
     use_green_suppression: true
-    green_h_min: 42
-    green_h_max: 53
-    green_s_min: 16
-    green_v_min: 0
+    green_h_min: 43
+    green_h_max: 83
+    green_s_min: 59
+    green_v_min: 34
+
 
     # Legacy coloured-ball HSV mode.  These only take effect when:
     #   segmentation_mode: hsv_ranges
@@ -49,11 +50,11 @@ grip_vision_detector:
     min_area_fraction: 0.004
     max_area_fraction: 0.45
     min_circularity: 0.25
-    confidence_threshold: 0.55
+    confidence_threshold: 0.5
     center_x_tolerance: 0.24
     center_y_min: 0.42
     history_size: 5
     required_detections: 3
-    blur_kernel: 5
-    morph_kernel: 5
+    blur_kernel: 13
+    morph_kernel: 13
     publish_debug: false

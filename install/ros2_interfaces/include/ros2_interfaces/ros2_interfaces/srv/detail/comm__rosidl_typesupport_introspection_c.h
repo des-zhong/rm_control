@@ -1,1 +1,0 @@
-/home/des/Projects/rmyscontrol/src/build/ros2_interfaces/rosidl_typesupport_introspection_c/ros2_interfaces/srv/detail/comm__rosidl_typesupport_introspection_c.h

@@ -116,7 +116,7 @@ def _make_masks(roi_img: np.ndarray, params: dict):
 
     kernel = np.ones((params['kernel'], params['kernel']), dtype=np.uint8)
     final_mask = cv2.morphologyEx(final_mask, cv2.MORPH_OPEN, kernel)
-    final_mask = cv2.morphologyEx(final_mask, cv2.MORPH_CLOSE, kernel)
+    final_mask = cv2.morphologyEx(final_mask, cv2.roiMORPH_CLOSE, kernel)
     return gray_candidate, green_background, final_mask
 
 

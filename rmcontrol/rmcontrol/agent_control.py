@@ -13,7 +13,7 @@ from rclpy.parameter import Parameter
 from .utils import *
 
 # arm_pose: high for move, low for catch
-arm_pose=[MoveArm.Goal(x=0.15, z=0.06), MoveArm.Goal(x=0.18, z=-0.08)] # up and down position
+arm_pose=[MoveArm.Goal(x=0.15, z=0.06), MoveArm.Goal(x=0.17, z=-0.08)] # up and down position
 gripper=[GripperControl.Goal(target_state=1, power=1.), GripperControl.Goal(target_state=2, power=1.)] # open and close
 attacker=0
 team_a=[1,3,5]

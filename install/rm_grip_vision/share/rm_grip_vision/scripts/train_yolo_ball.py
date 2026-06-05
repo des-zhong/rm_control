@@ -1,1 +1,0 @@
-/home/des/Projects/rmyscontrol/src/build/rm_grip_vision/scripts/train_yolo_ball.py

@@ -376,10 +376,13 @@ class Strategy(Node):
             # print(self.p[0], self.p[self.catcher], self.v[0])
             # print(self.catch_pose)
             # print(self.catch_pose,self.p[0], self.p[self.catcher], self.v[0])
+            if abs(dphi) > 0.174:
+                self.catch_pose[:1] = self.p[self.catcher][:1]
             self.target_pose[self.catcher]=self.catch_pose
+
             # self.get_logger().info(f'catcher state: {self.agent_status[self.catcher]}')
             # self.get_logger().info(f'dist: {distance(self.p[self.catcher], self.target_pose[self.catcher])}')
-            if self.agent_status[self.catcher]==30:
+            if self.agent_status[self.catcher]==30 and check_catchable(self.p[self.catcher], self.p[0]):
                 self.target_code[self.catcher]=32
                 self.catch_attempt_time[self.catcher]=time.time()
                 self.grip_vision_caught[self.catcher]=False
@@ -428,16 +431,16 @@ class Strategy(Node):
                 #     self.target_pose[self.catcher]=np.array([self.p_ys[1][0]+0.39, self.p_ys[1][1]-0.03, pi])
                 # elif self.kickoff==5:
                 #     self.target_pose[self.catcher]=np.array([self.p_ys[4][0]-0.39, self.p_ys[4][1]+0.04, 0])
-                if self.kickoff==1:
-                    self.target_pose[self.catcher]=np.array([self.p_ys[0][0]+0.39, self.p_ys[0][1]-0.03, pi])
-                elif self.kickoff==3:
-                    self.target_pose[self.catcher]=np.array([self.p_ys[2][0]-0.39, self.p_ys[2][1]+0.04, 0])
+                if self.kickoff==3:
+                    self.target_pose[self.catcher]=np.array([self.p_ys[2][0]+0.39, self.p_ys[2][1]-0.03, pi])
+                elif self.kickoff==1:
+                    self.target_pose[self.catcher]=np.array([self.p_ys[0][0]-0.39, self.p_ys[0][1]+0.04, 0])
                 
                 ################### end
 
 
 
-                # self.target_pose[self.catcher] = np.array([0, 0, 0])
+                # self.target_pose[self.catcher] = np.array([0, 0, 0])ker
             else:
                 self.target_pose[self.catcher]=target_poses[0].copy()
             # self.get_logger().info(f'check if RM{self.catcher} catched {distance(self.p[self.catcher], self.target_pose[self.catcher])}')

@@ -1,1 +1,0 @@
-/home/des/Projects/rmyscontrol/src/build/ros2_interfaces/rosidl_generator_c/ros2_interfaces/msg/detail/motions__struct.h

@@ -142,7 +142,7 @@ class GripVisionDetector(Node):
         )
         self.min_circularity = float(self.declare_parameter('min_circularity', 0.28).value)
         self.confidence_threshold = float(
-            self.declare_parameter('confidence_threshold', 0.55).value
+            self.declare_parameter('confidence_threshold', 0.5).value
         )
         self.center_x_tolerance = float(
             self.declare_parameter('center_x_tolerance', 0.24).value

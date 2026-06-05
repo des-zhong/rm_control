@@ -1,1 +1,0 @@
-/home/des/Projects/rmyscontrol/src/ros2_interfaces/msg/Mocap.msg
