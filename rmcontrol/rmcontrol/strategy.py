@@ -46,7 +46,7 @@ p_goal=[p_goal_a, p_goal_b]
 atk_comp=1.0
 def_dist=1.4
 no_rms=7 # 6 rm plus 1 ball
-no_ys=1
+no_ys=3
 target_poses=target_poses
 vkick_min=0.5 # the least speed for kicker to keep agile
 vkikcer_adjust=3 # to adjust ball speed to find kicker
@@ -98,6 +98,8 @@ class Strategy(Node):
         self.wait_for_ys=False
         self.change_time=time.time()
         self.catch_pose=target_poses[0].copy()
+        self.motion_received_time=0.0
+        self.catch_diagnostic_time=0.0
 
         # 视觉抓取结果接入：默认使用 /RMx/grip_vision/caught 判断闭爪后是否成功。
         # use_visual_catch:=false 时仍回退到原动捕 check_catched() 逻辑。
@@ -299,6 +301,7 @@ class Strategy(Node):
 
         # if len(mc_msg.poses)==no_rms + no_ys:
         if len(mc_msg.poses)>0:
+            self.motion_received_time=time.monotonic()
             prev_p = self.p.copy()
             self.p = pose2d_to_nparray(mc_msg.poses[:no_rms])
             self.mask[:,0] = self.p[:,0]<100
@@ -433,7 +436,7 @@ class Strategy(Node):
     def reset(self):
         if self.first_reset:
             self.get_catcher()
-            print(f'begin to reset. get catcher: {self.catcher}')
+            pass # print(f'begin to reset. get catcher: {self.catcher}')
             self.kicker=0
             self.target_code=[10]*7
             self.target_code[self.catcher]=30
@@ -483,9 +486,9 @@ class Strategy(Node):
         #     self.count = 0
         # test end
         if self.count2 > 1000:
-            print("self.target_code[self.catcher]", self.target_code[self.catcher])
-            print("self.agent_status[self.catcher]", self.agent_status[self.catcher])
-            print("self.catcher",self.catcher)
+            pass # print("self.target_code[self.catcher]", self.target_code[self.catcher])
+            pass # print("self.agent_status[self.catcher]", self.agent_status[self.catcher])
+            pass # print("self.catcher",self.catcher)
             self.count2 = 0
 
         
@@ -501,21 +504,21 @@ class Strategy(Node):
             d, dphi, ccres=check_catched(self.p[self.catcher], self.p[0], self.v[0])
             # print(self.p[0], self.p[self.catcher],self.catch_pose)
             if self.count > 1000:
-                print("self.rel_cmd[2]", self.rel_cmd[2])
-                print("catcher.d", d)
-                print("catcher.dphi", dphi)
-                print("catcher.ccres", ccres)
-                print("self.p[2]", self.p[2])
-                print("self.target_pose[2]", self.target_pose[2])
-                print("self.ball_p", self.p[0], "\n")
+                pass # print("self.rel_cmd[2]", self.rel_cmd[2])
+                pass # print("catcher.d", d)
+                pass # print("catcher.dphi", dphi)
+                pass # print("catcher.ccres", ccres)
+                pass # print("self.p[2]", self.p[2])
+                pass # print("self.target_pose[2]", self.target_pose[2])
+                pass # print("self.ball_p", self.p[0], "\n")
                 self.count = 0
             # print(self.p)
             # print(self.p[0], self.p[self.catcher], self.v[0])
             # print(self.catch_pose)
             # print(self.catch_pose,self.p[0], self.p[self.catcher], self.v[0])
-            if abs(dphi) > 0.174:
-                self.catch_pose[:1] = self.p[self.catcher][:1]
-            self.target_pose[self.catcher]=self.catch_pose
+            # if abs(dphi) > 0.174:
+            #     self.catch_pose[:1] = self.p[self.catcher][:1]
+            # self.target_pose[self.catcher]=self.catch_pose
 
             # self.get_logger().info(f'catcher state: {self.agent_status[self.catcher]}')
             # self.get_logger().info(f'dist: {distance(self.p[self.catcher], self.target_pose[self.catcher])}')
@@ -568,8 +571,8 @@ class Strategy(Node):
                         self.get_logger().info(f'---RM{self.catcher} 动捕确认抓取成功')
                         self.target_code[self.catcher]=34
                     else: # recatch
-                        print("not catch d:", d)
-                        print("not catch dphi", dphi)
+                        pass # print("not catch d:", d)
+                        pass # print("not catch dphi", dphi)
                         self.get_logger().info(f'动捕未确认抓取，重新抓取')
                         self.target_code[self.catcher]=30
         elif self.target_code[self.catcher]==34: # if got ball, then take it to the yanshee kicker
@@ -597,10 +600,9 @@ class Strategy(Node):
                 self.get_logger().info(f'---RM{self.catcher} carried ball to position')
                 self.target_code[self.catcher]=35
         elif self.target_code[self.catcher]==35: # ready to release ball
-            self.get_logger().info(f'catcher status:{self.agent_status[self.catcher]},code:{self.target_code[self.catcher]}')
-            # if self.agent_status[self.catcher]==35:
-            #     self.get_logger().info(f'---RM{self.catcher} released ball')
-            self.target_code[self.catcher]=36
+            if self.agent_status[self.catcher]==35:
+                self.get_logger().info(f'---RM{self.catcher} released ball')
+                self.target_code[self.catcher]=36
         
         elif self.target_code[self.catcher]==36: # ball in position
             self.target_pose[self.catcher]=target_poses[self.catcher].copy()
@@ -637,9 +639,9 @@ class Strategy(Node):
             self.obtime=0
         
         if self.count2 > 999:
-            print("self.target_pose[self.catcher]: ", self.target_pose[self.catcher])
-            print("self.rel_cmd[3]:", self.rel_cmd[3])
-            print("self.p[2]", self.p[2])
+            pass # print("self.target_pose[self.catcher]: ", self.target_pose[self.catcher])
+            pass # print("self.rel_cmd[2]:", self.rel_cmd[2])
+            pass # print("self.p[2]", self.p[2])
 
 def main(args=None):
     global target_poses
@@ -764,6 +766,16 @@ def main(args=None):
             i+=1
 
         node.rel_cmd = node.rel_cmd * node.mask
+        now=time.monotonic()
+        if node.catcher and now-node.catch_diagnostic_time>=2.0:
+            node.catch_diagnostic_time=now
+            rid=node.catcher
+            node.get_logger().info(
+                f'[CATCH] RM{rid} code={node.target_code[rid]}, agent_status={node.agent_status[rid]}, '
+                f'ball={node.p[0,:2]}, robot={node.p[rid]}, goal={node.target_pose[rid]}, '
+                f'cmd={node.rel_cmd[rid]}, tracked={bool(node.mask[rid,0])}, '
+                f'mocap_age={now-node.motion_received_time:.2f}s'
+            )
         # node.rel_cmd[2:] = node.rel_cmd[2:]*0
         # node.rel_cmd[1] = np.array([0.0, 0.5, 0.1])
         

@@ -1,12 +1,12 @@
 # 导入库
 from launch_ros.substitutions import FindPackageShare
 from launch import LaunchDescription
-from launch.actions import IncludeLaunchDescription
+from launch.actions import DeclareLaunchArgument, IncludeLaunchDescription
 from launch.launch_description_sources import PythonLaunchDescriptionSource
 from launch_xml.launch_description_sources import XMLLaunchDescriptionSource
 
 from launch_ros.actions import Node
-from launch.substitutions import PathJoinSubstitution, TextSubstitution
+from launch.substitutions import LaunchConfiguration, PathJoinSubstitution, TextSubstitution
 
 def generate_launch_description():
     """launch内容描述函数，由ros2 launch 扫描调用"""
@@ -21,6 +21,10 @@ def generate_launch_description():
     #     [parameters_basic1, parameters_basic2])
     # 返回让ROS2根据launch描述执行节点
     return LaunchDescription([
+        DeclareLaunchArgument(
+            'enable_camera', default_value='true',
+            description='Enable RM1-3 cameras; set false when testing control without video',
+        ),
         IncludeLaunchDescription(
             XMLLaunchDescriptionSource([
                 PathJoinSubstitution([
@@ -32,6 +36,7 @@ def generate_launch_description():
             launch_arguments={
                 'name': 'RM1',
                 'serial_number': '3JKDH2T00159G8',
+                'camera': LaunchConfiguration('enable_camera'),
             }.items()
         ),
         IncludeLaunchDescription(
@@ -45,6 +50,7 @@ def generate_launch_description():
             launch_arguments={
                 'name': 'RM2',
                 'serial_number': '3JKCJC400302GS',
+                'camera': LaunchConfiguration('enable_camera'),
             }.items()
         ),
         IncludeLaunchDescription(
@@ -58,6 +64,7 @@ def generate_launch_description():
             launch_arguments={
                 'name': 'RM3',
                 'serial_number': '3JKCJC400301ZP',
+                'camera': LaunchConfiguration('enable_camera'),
             }.items()
         ),
         # IncludeLaunchDescription(

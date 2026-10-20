@@ -71,6 +71,9 @@ def generate_launch_description():
             launch_arguments={
                 'name': 'RM4',
                 'serial_number': '3JKCJC400301UD',
+                # RM4-6 do not use camera-based gripping. Prevent recorder
+                # subscriptions from starting unnecessary video streams.
+                'camera': 'false',
                 'gimbal':'true',
                 'gimbal_mode':'2',
             }.items()
@@ -86,6 +89,7 @@ def generate_launch_description():
             launch_arguments={
                 'name': 'RM5',
                 'serial_number': '3JKCJC400301W0',
+                'camera': 'false',
                 'gimbal':'true',
                 'gimbal_mode':'2',
             }.items()
@@ -101,6 +105,7 @@ def generate_launch_description():
             launch_arguments={
                 'name': 'RM6',
                 'serial_number': '3JKCJC400300Y9',
+                'camera': 'false',
                 'gimbal':'true',
                 'gimbal_mode':'2',
             }.items()

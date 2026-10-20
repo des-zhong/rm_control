@@ -27,11 +27,11 @@ from ros2_interfaces.msg import Yscomm
 BOT_STANDBY = 0
 BOT_APPROACHING = 1
 BOT_BALL_READY = 2
-ip_addr_1 = "192.168.0.151" 
+ip_addr_1 = "192.168.0.16" 
 # ip_addr_1= "192.168.3.51"  #6AB8
-ip_addr_2= "192.168.0.72"  #A77D
-ip_addr_3="192.168.0.82"   #DF7D
-ip_addr_4="192.168.0.213"   #9B3D
+ip_addr_2= "192.168.0.27"  #A77D
+ip_addr_3="192.168.0.213"   #DF7D
+ip_addr_4="192.168.0.123"   #9B3D
 ip_addr_5="192.168.3.54"   #2DB4
 ip_addr_6="192.168.3.53"   #B634
 ips=[ip_addr_1, ip_addr_2, ip_addr_3, ip_addr_4, ip_addr_5, ip_addr_6]
@@ -263,11 +263,10 @@ def main(args=None):
             # bot.send_kick(1)
             bot.receive=1
         elif bot.receive == BOT_APPROACHING: #1
-            pass
-            # bot.move_to_specific_direction(bot.anchor[2])
-            # bot.move_to_position(bot.anchor[0], bot.anchor[1])
-            # if bot.in_right_pos and bot.in_right_direction:
-            #     bot.wave()
+            bot.move_to_specific_direction(bot.anchor[2])
+            bot.move_to_position(bot.anchor[0], bot.anchor[1])
+            if bot.in_right_pos and bot.in_right_direction:
+                bot.wave()
         elif bot.receive==BOT_STANDBY: #0
             bot.stop()
             time.sleep(0.1)

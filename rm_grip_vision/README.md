@@ -34,7 +34,7 @@ ros2 launch rm_grip_vision rm123_grip_vision_and_strategy.launch.py publish_debu
 
 ```bash
 ros2 launch rm_grip_vision rm123_grip_vision.launch.py \
-  config_file:=install/rm_grip_vision/share/rm_grip_vision/config/grip_vision_default.yaml \
+  config_file:=/home/des/Projects/rmyscontrol/src/rm_grip_vision/config/grip_vision_default.yaml \
   publish_debug:=true
 ```
 
@@ -45,7 +45,7 @@ ros2 launch rm_grip_vision rm123_grip_vision.launch.py \
 ```bash
 ros2 run rm_grip_vision segmentation_tuner --ros-args \
   -p robot_name:=RM1 \
-  --params-file install/rm_grip_vision/share/rm_grip_vision/config/grip_vision_default.yaml
+  --params-file /home/des/Projects/rmyscontrol/src/rm_grip_vision/config/grip_vision_default.yaml
 ```
 
 旧命令仍兼容，但不推荐新用户继续使用：

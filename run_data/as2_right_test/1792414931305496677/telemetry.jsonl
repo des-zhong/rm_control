@@ -1,0 +1,2 @@
+{"unix_ns": 1792414934813989642, "state": {"kind": "state", "token": 2, "valid": true, "odom": [0.0751699, -0.110373, -0.398606], "enabled": true, "source_stamp_ns": 0, "error_code": 0, "fault": false, "rc": 0}, "command_body": [0.0, -0.0, -0.0]}
+{"kind": "stopped", "rc": 0}

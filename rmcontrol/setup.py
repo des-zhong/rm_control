@@ -27,6 +27,8 @@ setup(
             'strategy = rmcontrol.strategy:main',
             'rvo = rmcontrol.rvo:main',
             'draw_plot = rmcontrol.draw_plot:main',
+            'data_recorder = rmcontrol.data_recorder:main',
+            'camera_recorder = rmcontrol.camera_recorder:main',
         ],
     },
 )

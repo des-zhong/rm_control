@@ -1,0 +1,18 @@
+{
+  "started_at": "2026-10-20T15:45:06.176154+08:00",
+  "hosts": [
+    "172.20.10.13",
+    "172.20.10.14"
+  ],
+  "interval_s": 1.0,
+  "format": "color JPEG (quality 95) + lossless uint16 depth PNG + preview PNG + JSON",
+  "notes": [
+    "Depth meters = pixel value * depth_scale_m; zero is invalid.",
+    "Depth aligned to color; preview clipped to 0..5 meters.",
+    "Request/receive timestamps use recorder clock; source timestamp domain comes from RealSense and is not necessarily Unix time.",
+    "Hosts run independently; no cross-host frame synchronization.",
+    "Camera streams run at 30 FPS; saved snapshots target 1/interval Hz.",
+    "This folder is separate from data_recorder; correlate by Unix timestamps."
+  ],
+  "stopped_at": "2026-10-20T15:45:35.379549+08:00"
+}

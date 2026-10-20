@@ -14,7 +14,22 @@
     # ROI 是归一化图像坐标：[x_min, y_min, x_max, y_max]。
     # 建议只覆盖夹爪闭合后球可能出现的位置。ROI 太大会带入夹爪、
     # 地面和背景；ROI 太小可能漏掉被夹住的球。
-    roi: [0.24, 0.42, 0.76, 0.96]
+    roi: [0.306, 0.449, 0.689, 0.792]
+    morph_kernel: 5
+    use_green_suppression: true
+    green_h_min: 43
+    green_h_max: 83
+    green_s_min: 59
+    green_v_min: 34
+    gray_s_max: 122
+    gray_v_min: 131
+    gray_v_max: 158
+    use_lab_gray: true
+    lab_chroma_max: 23.0
+    lab_l_min: 45
+    lab_l_max: 162
+
+
 
     # 分割模式：
     #   gray_on_green：当前默认，适合灰色/银灰色反光网球 + 绿色场地。
@@ -34,26 +49,26 @@
 
     # gray_on_green 的灰色候选参数。灰色/银灰色目标 Hue 不稳定，
     # 因此主要看低饱和度、亮度范围和 Lab 近中性灰。
-    gray_s_max: 85
-    gray_v_min: 35
-    gray_v_max: 255
-    use_lab_gray: true
+    # gray_s_max: 85
+    # gray_v_min: 35
+    # gray_v_max: 255
+    # use_lab_gray: true
     # lab_chroma_max: 24.0
     # lab_l_min: 35
     # lab_l_max: 255
-    gray_s_max: 121
-    gray_v_min: 98
-    gray_v_max: 132
-    lab_chroma_max: 85
-    lab_l_min: 42
-    lab_l_max: 143
+    # gray_s_max: 121
+    # gray_v_min: 98
+    # gray_v_max: 132
+    # lab_chroma_max: 85.0
+    # lab_l_min: 42
+    # lab_l_max: 143
 
     # 绿色背景抑制。开启后会从候选 mask 中扣掉绿色场地像素。
-    use_green_suppression: true
-    green_h_min: 43
-    green_h_max: 83
-    green_s_min: 59
-    green_v_min: 34
+    # use_green_suppression: true
+    # green_h_min: 43
+    # green_h_max: 83
+    # green_s_min: 59
+    # green_v_min: 34
 
 
     # hsv_ranges 彩色目标参数，仅在 segmentation_mode: hsv_ranges 时使用。
@@ -82,12 +97,12 @@
     caught_min_circularity: 0.06
     # 兼容旧圆度参数：caught_allow_low_circularity=false 时使用这个更严格阈值。
     min_circularity: 0.25
-    caught_score_threshold: 0.45
+    caught_score_threshold: 0.99
     caught_required_frames: 3
     history_size: 5
 
-    # 图像预处理和调试输出。
+    # 图像预处理和调试输出。lab
     blur_kernel: 5
-    morph_kernel: 5
+    # morph_kernel: 5
     publish_debug: false
     log_period_sec: 2.0

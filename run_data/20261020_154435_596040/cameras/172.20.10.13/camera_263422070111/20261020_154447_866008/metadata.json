@@ -1,0 +1,38 @@
+{
+  "serial": "263422070111",
+  "model": "RealSense D435I",
+  "width": 640,
+  "height": 480,
+  "depth_scale_m": 0.0010000000475,
+  "depth_aligned_to_color": true,
+  "invalid_depth_value": 0,
+  "fx": 607.403320312,
+  "fy": 606.092773438,
+  "cx": 330.151184082,
+  "cy": 253.498413086,
+  "distortion_model": 2,
+  "distortion_coefficients": [
+    0,
+    0,
+    0,
+    0,
+    0
+  ],
+  "source_timestamp_ms": 1792482289400.0,
+  "source_timestamp_domain": 2,
+  "source_frame_number": 38,
+  "color_jpeg_bytes": 94500,
+  "depth_png_bytes": 90395,
+  "color_jpeg_quality": 95,
+  "host": "172.20.10.13",
+  "camera_index": 0,
+  "request_unix_ns": 1792482287865944729,
+  "request_monotonic_ns": 2802450568756,
+  "receive_unix_ns": 1792482290756623498,
+  "receive_monotonic_ns": 2805351973980,
+  "valid_depth_pixels": 253514,
+  "preview_range_m": [
+    0,
+    5
+  ]
+}

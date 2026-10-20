@@ -1,0 +1,11 @@
+{
+  "ip": "172.20.10.14",
+  "user": "unitree",
+  "remote_agent": "/home/unitree/as2_follow/build/as2_agent",
+  "interface": "eth10",
+  "seconds": 5.0,
+  "link_timeout": 1.0,
+  "execute": true,
+  "ask_password": true,
+  "log_dir": "run_data/as2_right_test"
+}

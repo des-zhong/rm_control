@@ -86,7 +86,7 @@ class MotionCapture(Node):
         while True:
             self.publisher()
             time.sleep(1/24)
-            print(time.time()-t0)
+            # print(time.time()-t0)
             t0 = time.time()
 
 
@@ -116,7 +116,7 @@ class MotionCapture(Node):
             self.v=[]
             p_o=[]
             if n_o <1:
-                print("no ball detected")
+                self.get_logger().warning('no ball detected; robot positions are not updated', throttle_duration_sec=2.0)
                 return 
             else:
                 pose_ball=Pose2D()
@@ -205,21 +205,21 @@ class MotionCapture(Node):
 
     def py_forcePlate_func(pFocePlates, pUserData):
         if pFocePlates == None:  
-            print("Not get the forcePlate frame.\n")
+            pass # print("Not get the forcePlate frame.\n")
             pass
         else:
             ForcePlatesData = pFocePlates.contents
-            print("iFrame:%d" % ForcePlatesData.iFrame)
+            pass # print("iFrame:%d" % ForcePlatesData.iFrame)
             for iForcePlate in range(ForcePlatesData.nForcePlates):
-                print("Fxyz:[%f,%f,%f] xyz:[%f,%f,%f] MFree:[%f]" % (
-                    ForcePlatesData.ForcePlates[iForcePlate].Fxyz[0],
-                    ForcePlatesData.ForcePlates[iForcePlate].Fxyz[1],
-                    ForcePlatesData.ForcePlates[iForcePlate].Fxyz[2],
-                    ForcePlatesData.ForcePlates[iForcePlate].xyz[0],
-                    ForcePlatesData.ForcePlates[iForcePlate].xyz[1],
-                    ForcePlatesData.ForcePlates[iForcePlate].xyz[2],
-                    ForcePlatesData.ForcePlates[iForcePlate].Mfree
-                ))
+                pass # print("Fxyz:[%f,%f,%f] xyz:[%f,%f,%f] MFree:[%f]" % (
+                    # ForcePlatesData.ForcePlates[iForcePlate].Fxyz[0],
+                    # ForcePlatesData.ForcePlates[iForcePlate].Fxyz[1],
+                    # ForcePlatesData.ForcePlates[iForcePlate].Fxyz[2],
+                    # ForcePlatesData.ForcePlates[iForcePlate].xyz[0],
+                    # ForcePlatesData.ForcePlates[iForcePlate].xyz[1],
+                    # ForcePlatesData.ForcePlates[iForcePlate].xyz[2],
+                    # ForcePlatesData.ForcePlates[iForcePlate].Mfree
+                # ))
 
 
 def main(args=None):

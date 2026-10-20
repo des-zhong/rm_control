@@ -79,7 +79,7 @@ def check_catched(ps, pb, vb):
 
 def check_catchable(ps, pb):
     t=atan2(pb[1]-ps[1], pb[0]-ps[0])
-    dt=limit_pi(abs(t-ps[2]))
+    dt=abs(limit_pi(t-ps[2]))
     d=distance(ps, pb)
     # node.get_logger().info(f'dt: {dt},  d: {d}')
     if dt<0.15 and catched[0]<d<catched[1]:
